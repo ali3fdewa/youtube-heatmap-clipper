@@ -20,11 +20,11 @@ COOKIES_FILE = BASE_DIR / "cookies.txt"
 
 
 def _ytdlp_base_cmd() -> list[str]:
-    """Build the base yt-dlp command with cookies and JS runtime flags."""
+    """Build the base yt-dlp command with cookies, JS runtime, and EJS flags."""
     cmd = ["yt-dlp"]
     if COOKIES_FILE.exists():
         cmd += ["--cookies", str(COOKIES_FILE)]
-    cmd += ["--js-runtimes", "node"]
+    cmd += ["--remote-components", "ejs:github"]
     return cmd
 
 # ---------------------------------------------------------------------------
