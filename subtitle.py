@@ -1,12 +1,13 @@
 """
 subtitle.py — AI Subtitle Engine (faster-whisper)
 
-Transcribes audio using faster-whisper, generates viral-style ASS subtitles,
-and supports font/position/style customization.
+Transcribes audio using faster-whisper, generates viral-style ASS subtitles
+with 3-word chunking and per-word active highlighting (yellow).
+
+Supports font/size/position/style customization.
 """
 
 import os
-import re
 import logging
 import subprocess
 from pathlib import Path
@@ -49,6 +50,7 @@ DEFAULT_STYLE = {
     "bold": True,
     "position": "bottom",             # "bottom" or "center"
     "margin_v": 180,
+    "chunk_size": 3,                  # words per subtitle chunk
 }
 
 # Important words to highlight in yellow
@@ -73,7 +75,7 @@ def transcribe(
     """
     Transcribe audio using faster-whisper.
 
-    Returns list of segments: [{\"start\": float, \"end\": float, \"text\": str, \"words\": [...]}]
+    Returns list of segments: [{"start": float, "end": float, "text": str, "words": [...]}]
     """
     try:
         from faster_whisper import WhisperModel
@@ -149,7 +151,7 @@ def extract_audio(video_path: str, output_path: str | None = None) -> str | None
 
 
 # ---------------------------------------------------------------------------
-# ASS subtitle generation
+# ASS subtitle generation — 3-word chunking + active word highlight
 # ---------------------------------------------------------------------------
 def _ass_timestamp(seconds: float) -> str:
     """Convert seconds to ASS timestamp format: H:MM:SS.cc"""
@@ -160,21 +162,88 @@ def _ass_timestamp(seconds: float) -> str:
     return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
 
 
-def _colorize_text(text: str, highlight_color: str, primary_color: str) -> str:
+def _chunk_words(words: list[dict], chunk_size: int = 3) -> list[list[dict]]:
     """
-    Apply viral-style coloring: highlight important words in yellow,
-    rest in white. All text is uppercased for viral impact.
-    Uses ASS override tags.
+    Split a flat list of word dicts into chunks of `chunk_size`.
+
+    Each word dict has: {"start": float, "end": float, "word": str}
+    Returns list of chunks, where each chunk is a list of word dicts.
     """
-    words = text.upper().split()
-    result = []
-    for word in words:
-        clean = re.sub(r"[^\w]", "", word).lower()
-        if clean in HIGHLIGHT_WORDS:
-            result.append(f"{{\\c{highlight_color}\\b1}}{word}{{\\c{primary_color}\\b1}}")
-        else:
-            result.append(word)
-    return " ".join(result)
+    return [words[i:i + chunk_size] for i in range(0, len(words), chunk_size)]
+
+
+def _build_chunk_dialogue_lines(
+    chunk: list[dict],
+    highlight_color: str,
+    primary_color: str,
+    offset: float = 0.0,
+) -> list[str]:
+    """
+    Build ASS dialogue lines for a single chunk of words.
+
+    For each word in the chunk, generates a dialogue line spanning that word's
+    duration. The active (current) word is highlighted in yellow; the other
+    words in the chunk stay white. All text is uppercased for viral impact.
+
+    Returns list of ASS "Dialogue:" lines.
+    """
+    lines = []
+    chunk_words_upper = [w["word"].upper() for w in chunk]
+
+    for active_idx, word_info in enumerate(chunk):
+        start = max(0.0, word_info["start"] - offset)
+        end = max(0.0, word_info["end"] - offset)
+
+        if end <= start:
+            continue
+
+        # Build the display text: highlight the active word in yellow
+        parts = []
+        for i, display_word in enumerate(chunk_words_upper):
+            if i == active_idx:
+                # Active word → yellow, bold
+                parts.append(
+                    f"{{\\c{highlight_color}\\b1}}{display_word}{{\\c{primary_color}\\b1}}"
+                )
+            else:
+                parts.append(display_word)
+
+        styled_text = " ".join(parts)
+
+        # Pop-in fade effect
+        fade = "{\\fad(80,60)}"
+        line = (
+            f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(end)},"
+            f"Default,,0,0,0,,{fade}{styled_text}"
+        )
+        lines.append(line)
+
+    return lines
+
+
+def _generate_fallback_lines(
+    segment: dict,
+    highlight_color: str,
+    primary_color: str,
+    offset: float = 0.0,
+) -> list[str]:
+    """
+    Fallback for segments without word-level timestamps.
+    Displays the full text as a single subtitle (no word highlighting).
+    """
+    start = max(0.0, segment["start"] - offset)
+    end = max(0.0, segment["end"] - offset)
+    text = segment.get("text", "").upper()
+
+    if not text or end <= start:
+        return []
+
+    fade = "{\\fad(80,60)}"
+    line = (
+        f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(end)},"
+        f"Default,,0,0,0,,{fade}{text}"
+    )
+    return [line]
 
 
 def generate_ass_subtitle(
@@ -183,14 +252,17 @@ def generate_ass_subtitle(
     offset: float = 0.0,
 ) -> str:
     """
-    Generate an ASS (Advanced SubStation Alpha) subtitle string.
+    Generate an ASS subtitle string with 3-word chunking and active word
+    yellow highlighting.
 
-    Supports viral styling with highlighted important words.
+    Each chunk shows N words at a time (default 3). The currently spoken
+    word is rendered in yellow; the rest stay white.
     """
     cfg = {**DEFAULT_STYLE, **(style_config or {})}
 
     alignment = "2" if cfg["position"] == "bottom" else "5"
     bold_flag = "-1" if cfg["bold"] else "0"
+    chunk_size = int(cfg.get("chunk_size", 3))
 
     ass_content = f"""[Script Info]
 Title: AI Viral Subtitles
@@ -208,21 +280,27 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
     for seg in segments:
-        start = seg["start"] - offset
-        end = seg["end"] - offset
-        if start < 0:
-            start = 0
+        words = seg.get("words", [])
 
-        text = seg.get("text", "")
-        # Apply viral coloring
-        styled_text = _colorize_text(
-            text, cfg["highlight_color"], cfg["primary_color"]
-        )
-
-        # Add pop-in animation effect
-        fade = "{\\fad(150,100)}"
-        line = f"Dialogue: 0,{_ass_timestamp(start)},{_ass_timestamp(end)},Default,,0,0,0,,{fade}{styled_text}"
-        ass_content += line + "\n"
+        if words:
+            # Group words into chunks of N
+            chunks = _chunk_words(words, chunk_size)
+            for chunk in chunks:
+                dialogue_lines = _build_chunk_dialogue_lines(
+                    chunk,
+                    cfg["highlight_color"],
+                    cfg["primary_color"],
+                    offset,
+                )
+                for line in dialogue_lines:
+                    ass_content += line + "\n"
+        else:
+            # No word timestamps — fallback to full sentence
+            fallback = _generate_fallback_lines(
+                seg, cfg["highlight_color"], cfg["primary_color"], offset
+            )
+            for line in fallback:
+                ass_content += line + "\n"
 
     return ass_content
 
@@ -261,9 +339,9 @@ def generate_subtitles_for_clip(
 
     1. Extract audio from the segment
     2. Transcribe with faster-whisper
-    3. Generate ASS subtitle file
+    3. Generate ASS subtitle file with 3-word chunking + active highlight
 
-    Returns {\"subtitle_path\": str, \"transcript\": list, \"success\": bool}
+    Returns {"subtitle_path": str, "transcript": list, "success": bool}
     """
     # Extract audio for the clip segment
     audio_path = os.path.join(output_dir, f"{clip_name}_audio.wav")

@@ -303,6 +303,19 @@
           </select>
         </div>
 
+        <!-- Font Size -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Font Size</label>
+          <div class="flex items-center gap-3">
+            <input id="font-size-slider" type="range" min="20" max="100" value="58" step="2"
+                   oninput="updateFontSize(this.value)"
+                   class="flex-1 h-2 rounded-full appearance-none cursor-pointer
+                          bg-slate-700 accent-indigo-500">
+            <span id="font-size-value"
+                  class="text-sm font-mono text-indigo-400 font-semibold w-8 text-right">58</span>
+          </div>
+        </div>
+
         <!-- Subtitles Toggle -->
         <div class="space-y-2">
           <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Subtitles</label>

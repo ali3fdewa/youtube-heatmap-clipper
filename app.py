@@ -308,6 +308,7 @@ def _generate_clips_job(
                             language=sub_lang,
                             style_config={
                                 "font": sub_config.get("font", "Plus Jakarta Sans"),
+                                "font_size": int(sub_config.get("font_size", 58)),
                                 "position": sub_config.get("position", "bottom"),
                             },
                         )
@@ -521,10 +522,12 @@ def print_banner():
         if not checks["yt_dlp"]["ok"]:
             print("     yt-dlp: pip install yt-dlp")
 
-    print(f"\n  🌐 Web UI: http://localhost:5000")
+    port = int(os.environ.get("PORT", 5000))
+    print(f"\n  🌐 Web UI: http://0.0.0.0:{port}")
     print("=" * 60 + "\n")
+    return port
 
 
 if __name__ == "__main__":
-    print_banner()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = print_banner()
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "1") == "1")

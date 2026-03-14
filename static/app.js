@@ -24,6 +24,7 @@ const state = {
       model: 'base',
       language: '',
       font: 'Plus Jakarta Sans',
+      font_size: 58,
       position: 'bottom',
     },
     telegram: { botToken: '', chatId: '' },
@@ -554,6 +555,13 @@ function updateSetting(key, value) {
 
 function toggleSettings() {
   document.getElementById('settings-panel').classList.toggle('hidden');
+}
+
+function updateFontSize(value) {
+  const size = parseInt(value, 10);
+  state.settings.subtitles.font_size = size;
+  const display = document.getElementById('font-size-value');
+  if (display) display.textContent = size;
 }
 
 // ==========================================================================
