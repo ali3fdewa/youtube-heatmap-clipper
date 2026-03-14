@@ -32,7 +32,7 @@ def _ytdlp_base_cmd() -> list[str]:
     cmd = ["yt-dlp"]
     if COOKIES_FILE.exists():
         cmd += ["--cookies", str(COOKIES_FILE)]
-    cmd += ["--js-runtimes", "nodejs"]
+    cmd += ["--js-runtimes", "node"]
     return cmd
 
 # ---------------------------------------------------------------------------
