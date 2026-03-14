@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Viral YouTube Heatmap Clipper</title>
+  <meta name="description" content="Scan YouTube videos, detect viral moments from Most Replayed heatmaps, and generate optimized short-form clips with AI subtitles.">
+
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwindcss.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen antialiased">
+
+  <!-- ===================== Toast Container ===================== -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ===================== Background Gradient ===================== -->
+  <div class="fixed inset-0 -z-10 overflow-hidden">
+    <div class="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-indigo-900/20 blur-3xl"></div>
+    <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-purple-900/15 blur-3xl"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-fuchsia-900/10 blur-3xl"></div>
+  </div>
+
+  <!-- ===================== Header ===================== -->
+  <header class="border-b border-slate-800/50 backdrop-blur-md bg-slate-950/60 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xl">
+          🎬
+        </div>
+        <div>
+          <h1 class="text-lg font-bold gradient-text">AI Heatmap Clipper</h1>
+          <p class="text-xs text-slate-500">Viral Short-Form Content Generator</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div id="system-status" class="flex gap-3"></div>
+        <button onclick="toggleSettings()"
+                class="p-2.5 rounded-xl bg-slate-800/60 hover:bg-slate-700/60 transition-all text-slate-400 hover:text-slate-200">
+          ⚙️
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== Main Content ===================== -->
+  <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+    <!-- ============ Section 1: URL Input ============ -->
+    <section class="glass p-6 anim-fade-up">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">📡 YouTube Scanner</h2>
+      <div class="flex gap-3">
+        <div class="flex-1 relative">
+          <input id="youtube-url" type="text"
+                 placeholder="Paste YouTube URL (video, short, or playlist)…"
+                 class="w-full px-5 py-3.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                        placeholder-slate-500 text-slate-200 focus:outline-none focus:border-indigo-500/60
+                        focus:ring-2 focus:ring-indigo-500/20 transition-all text-sm">
+          <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs">↵ Enter</span>
+        </div>
+        <button id="btn-scan" onclick="scanVideo()"
+                class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600
+                       hover:from-indigo-500 hover:to-purple-500 text-white font-semibold
+                       transition-all duration-200 shadow-lg shadow-indigo-500/20
+                       hover:shadow-xl hover:shadow-indigo-500/30 active:scale-95 text-sm">
+          🔍 Scan Video
+        </button>
+      </div>
+      <!-- Detection Threshold Slider -->
+      <div class="mt-4 flex items-center gap-4">
+        <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold whitespace-nowrap">
+          🎚️ Detection Threshold
+        </label>
+        <input id="threshold-slider" type="range" min="10" max="90" value="40" step="5"
+               oninput="updateThreshold(this.value)"
+               class="flex-1 h-2 rounded-full appearance-none cursor-pointer
+                      bg-slate-700 accent-indigo-500">
+        <span id="threshold-value"
+              class="text-sm font-mono text-indigo-400 font-semibold w-12 text-right">0.40</span>
+        <button onclick="rescanWithThreshold()"
+                class="text-xs px-3 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400
+                       hover:bg-indigo-500/40 transition-all font-medium">
+          ↻ Rescan
+        </button>
+      </div>
+      <p class="mt-1.5 text-xs text-slate-600">Lower threshold = more segments detected. Default: 0.40</p>
+    </section>
+
+    <!-- ============ Section 2: Video Metadata ============ -->
+    <section id="section-metadata" class="glass p-6 hidden anim-fade-up">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">🎥 Video Preview</h2>
+      <div class="flex flex-col md:flex-row gap-6">
+        <img id="meta-thumbnail" src="" alt="Thumbnail"
+             class="w-full md:w-72 rounded-xl object-cover bg-slate-800">
+        <div class="flex-1 space-y-3">
+          <h3 id="meta-title" class="text-xl font-bold text-white leading-tight"></h3>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <span class="flex items-center gap-1.5 text-slate-400">
+              📺 <span id="meta-channel" class="text-slate-300"></span>
+            </span>
+            <span class="flex items-center gap-1.5 text-slate-400">
+              ⏱️ <span id="meta-duration" class="text-slate-300 font-mono"></span>
+            </span>
+            <span class="flex items-center gap-1.5 text-slate-400">
+              🆔 <span id="meta-video-id" class="text-slate-300 font-mono text-xs"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Section 3: Heatmap Chart ============ -->
+    <section id="section-heatmap" class="glass p-6 hidden anim-fade-up">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">📊 Most Replayed Heatmap</h2>
+      <div class="heatmap-bar rounded-xl overflow-hidden">
+        <canvas id="heatmap-canvas" class="w-full"></canvas>
+      </div>
+      <p class="text-xs text-slate-500 mt-2">Yellow markers show detected viral segments • Higher bars = more replayed</p>
+    </section>
+
+    <!-- ============ Section 4: Segments Table ============ -->
+    <section id="section-segments" class="glass p-6 hidden anim-fade-up">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">🎯 Detected Segments</h2>
+        <div class="flex items-center gap-3">
+          <span id="selection-count" class="text-xs text-slate-500">0 selected</span>
+          <label class="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+            <input type="checkbox" class="custom-checkbox" onchange="toggleAllSegments(this.checked)">
+            Select All
+          </label>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full segment-table">
+          <thead>
+            <tr class="border-b border-slate-700/50">
+              <th class="p-3 w-12"></th>
+              <th class="p-3">Start</th>
+              <th class="p-3">End</th>
+              <th class="p-3">Heatmap</th>
+              <th class="p-3">Viral Score</th>
+              <th class="p-3">Action</th>
+            </tr>
+          </thead>
+          <tbody id="segments-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Create Clips Button -->
+      <div class="mt-6 flex flex-col md:flex-row gap-4 items-start">
+        <button id="btn-create-clips" onclick="createClips()"
+                class="px-8 py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600
+                       hover:from-fuchsia-500 hover:to-pink-500 text-white font-bold
+                       transition-all shadow-lg shadow-fuchsia-500/20 hover:shadow-xl
+                       hover:shadow-fuchsia-500/30 active:scale-95 pulse-glow">
+          🎬 Create Selected Clips
+        </button>
+
+        <!-- Manual Clip Tool -->
+        <div class="flex items-center gap-2 glass-light p-3 rounded-xl">
+          <span class="text-xs text-slate-400">Manual:</span>
+          <input id="manual-start" type="text" placeholder="0:30"
+                 class="w-20 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40
+                        text-sm font-mono text-slate-300 focus:outline-none focus:border-indigo-500/50">
+          <span class="text-slate-600">→</span>
+          <input id="manual-end" type="text" placeholder="1:15"
+                 class="w-20 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40
+                        text-sm font-mono text-slate-300 focus:outline-none focus:border-indigo-500/50">
+          <button onclick="createManualClip()"
+                  class="px-4 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400
+                         hover:bg-indigo-500/40 transition-all text-sm font-medium">
+            ✂️ Clip
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Section 5: Output Gallery ============ -->
+    <section id="section-output" class="glass p-6 hidden anim-fade-up">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">📦 Generated Clips</h2>
+
+      <!-- Progress -->
+      <div class="mb-6 space-y-2">
+        <div class="flex items-center justify-between text-sm">
+          <span id="job-status" class="text-slate-300">Waiting…</span>
+          <span id="job-progress" class="text-slate-500 font-mono text-xs">0/0</span>
+        </div>
+        <div class="progress-track">
+          <div id="progress-bar" class="progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Clips Grid -->
+      <div id="clips-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- ============ Section 6: Batch Mode ============ -->
+    <section class="glass p-6 anim-fade-up">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">📂 Batch Processing</h2>
+      <div class="flex gap-3">
+        <input id="batch-url" type="text"
+               placeholder="Paste YouTube Playlist or Channel URL…"
+               class="flex-1 px-5 py-3 rounded-xl bg-slate-800/60 border border-slate-700/40
+                      placeholder-slate-500 text-slate-200 text-sm focus:outline-none
+                      focus:border-indigo-500/60 transition-all">
+        <button id="btn-batch" onclick="scanBatch()"
+                class="px-6 py-3 rounded-xl bg-slate-700/60 hover:bg-slate-600/60
+                       text-slate-300 font-medium transition-all text-sm active:scale-95">
+          📂 Scan Playlist
+        </button>
+      </div>
+      <div id="batch-video-list" class="mt-4 max-h-60 overflow-y-auto hidden"></div>
+    </section>
+
+    <!-- ============ Settings Panel (toggle) ============ -->
+    <section id="settings-panel" class="glass p-6 hidden anim-fade-up">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-6">⚙️ Settings</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- Aspect Ratio -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Aspect Ratio</label>
+          <select onchange="updateSetting('aspectRatio', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
+            <option value="9:16" selected>9:16 — Shorts / TikTok / Reels</option>
+            <option value="1:1">1:1 — Square</option>
+            <option value="16:9">16:9 — Landscape</option>
+            <option value="original">Original</option>
+          </select>
+        </div>
+
+        <!-- Crop Mode -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Crop Mode</label>
+          <select onchange="updateSetting('cropMode', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
+            <option value="center" selected>Center Crop</option>
+            <option value="split_left">Split Left (facecam bottom-left)</option>
+            <option value="split_right">Split Right (facecam bottom-right)</option>
+            <option value="split_up_down">Split Up/Down (speaker + gameplay)</option>
+            <option value="split_left_right">Split Left/Right</option>
+            <option value="ai_face">🤖 AI Face Tracking</option>
+          </select>
+        </div>
+
+        <!-- Subtitle Model -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Subtitle Model</label>
+          <select onchange="updateSetting('subtitles.model', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
+            <option value="tiny">Tiny (fastest)</option>
+            <option value="base" selected>Base (balanced)</option>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large-v3">Large v3 (best quality)</option>
+          </select>
+        </div>
+
+        <!-- Subtitle Font -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Subtitle Font</label>
+          <select onchange="updateSetting('subtitles.font', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
+            <option value="Plus Jakarta Sans" selected>Plus Jakarta Sans</option>
+            <option value="Roboto">Roboto</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Arial">Arial</option>
+          </select>
+        </div>
+
+        <!-- Subtitle Position -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Subtitle Position</label>
+          <select onchange="updateSetting('subtitles.position', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
+            <option value="bottom" selected>Bottom</option>
+            <option value="center">Center</option>
+          </select>
+        </div>
+
+        <!-- Subtitles Toggle -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Subtitles</label>
+          <label class="flex items-center gap-3 cursor-pointer py-2">
+            <input type="checkbox" checked
+                   onchange="updateSetting('subtitles.enabled', this.checked)"
+                   class="custom-checkbox">
+            <span class="text-sm text-slate-300">Enable AI Subtitles</span>
+          </label>
+        </div>
+
+        <!-- Language -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Language</label>
+          <select onchange="updateSetting('subtitles.language', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
+            <option value="" selected>Auto-detect</option>
+            <option value="en">English</option>
+            <option value="id">Indonesian</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="pt">Portuguese</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="zh">Chinese</option>
+            <option value="ar">Arabic</option>
+            <option value="hi">Hindi</option>
+          </select>
+        </div>
+
+        <!-- Telegram Bot Token -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Telegram Bot Token</label>
+          <input type="password" placeholder="123456:ABC-DEF1234..."
+                 onchange="updateSetting('telegram.botToken', this.value)"
+                 class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                        text-sm text-slate-300 placeholder-slate-600 focus:outline-none
+                        focus:border-indigo-500/50">
+        </div>
+
+        <!-- Telegram Chat ID -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Telegram Chat ID</label>
+          <input type="text" placeholder="@channel or numeric ID"
+                 onchange="updateSetting('telegram.chatId', this.value)"
+                 class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                        text-sm text-slate-300 placeholder-slate-600 focus:outline-none
+                        focus:border-indigo-500/50">
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================== Footer ===================== -->
+  <footer class="border-t border-slate-800/50 mt-12">
+    <div class="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between text-xs text-slate-600">
+      <span>AI Viral YouTube Heatmap Clipper • Built for short-form content creators</span>
+      <span>Flask + FFmpeg + faster-whisper + OpenCV</span>
+    </div>
+  </footer>
+
+  <!-- App JS -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

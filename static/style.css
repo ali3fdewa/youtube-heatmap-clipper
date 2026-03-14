@@ -1,0 +1,176 @@
+/* ===== AI Viral YouTube Heatmap Clipper — Custom Styles ===== */
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.5); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.8); }
+
+/* --- Glass card --- */
+.glass {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 16px;
+}
+
+.glass-light {
+  background: rgba(30, 41, 59, 0.50);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.10);
+  border-radius: 12px;
+}
+
+/* --- Gradient text --- */
+.gradient-text {
+  background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* --- Animated gradient border --- */
+.gradient-border {
+  position: relative;
+  overflow: hidden;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899, #6366f1);
+  background-size: 300% 300%;
+  animation: borderGlow 4s ease infinite;
+  border-radius: inherit;
+  z-index: -1;
+}
+
+/* --- Pulse glow --- */
+.pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* --- Heatmap bar --- */
+.heatmap-bar {
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* --- Keyframes --- */
+@keyframes borderGlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 24px rgba(99, 102, 241, 0.6); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.9); }
+  70%  { transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.anim-fade-up   { animation: fadeUp 0.5s ease forwards; }
+.anim-slide-in  { animation: slideIn 0.4s ease forwards; }
+.anim-pop-in    { animation: popIn 0.3s ease forwards; }
+
+/* --- Toast --- */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  padding: 14px 22px;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 500;
+  animation: slideIn 0.4s ease, fadeUp 0.3s ease 3s reverse forwards;
+  max-width: 380px;
+}
+.toast-success { background: linear-gradient(135deg, #059669, #10b981); }
+.toast-error   { background: linear-gradient(135deg, #dc2626, #ef4444); }
+.toast-info    { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.toast-warning { background: linear-gradient(135deg, #d97706, #f59e0b); }
+
+/* --- Progress bar --- */
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(51, 65, 85, 0.6);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* --- Checkbox --- */
+.custom-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(148, 163, 184, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.custom-checkbox:checked {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-color: #6366f1;
+}
+.custom-checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* --- Table --- */
+.segment-table th {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+.segment-table tr {
+  transition: background 0.2s ease;
+}
+.segment-table tr:hover {
+  background: rgba(99, 102, 241, 0.08);
+}
+
+/* --- Responsive tweaks --- */
+@media (max-width: 768px) {
+  .dashboard-grid { grid-template-columns: 1fr !important; }
+}
