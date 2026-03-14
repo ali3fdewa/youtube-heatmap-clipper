@@ -105,6 +105,15 @@ def check_system() -> dict:
     except Exception:
         checks["yt_dlp"]["version"] = "Not installed"
 
+    # OpenCV (for AI face tracking)
+    checks["opencv"] = {"ok": False, "version": "", "required": "any (optional)"}
+    try:
+        import cv2
+        checks["opencv"]["ok"] = True
+        checks["opencv"]["version"] = cv2.__version__
+    except ImportError:
+        checks["opencv"]["version"] = "Not installed (AI face tracking disabled)"
+
     return checks
 
 
@@ -263,34 +272,41 @@ def _generate_clips_job(
         out_dims = clipper.ASPECT_RATIOS.get(aspect_ratio, (720, 1280))
         out_w, out_h = out_dims if out_dims else (in_w, in_h)
 
-        # Prepare crop filter
-        crop_filter = None
-        if crop_mode == "ai_face":
-            # Track faces for AI crop
-            try:
-                positions = cropper.track_speaker(video_path)
-                if positions:
-                    positions = cropper.smooth_crop_trajectory(positions)
-                    crop_filter = cropper.generate_face_crop_filter(
-                        positions, in_w, in_h, out_w, out_h
-                    )
-            except Exception as e:
-                logger.warning("Face tracking failed, using center crop: %s", e)
-
-        if not crop_filter and crop_mode != "center":
-            crop_filter = cropper.get_crop_filter(
-                crop_mode, in_w, in_h, out_w, out_h
-            )
-        elif not crop_filter:
-            crop_filter = cropper.get_crop_filter(
-                "center", in_w, in_h, out_w, out_h
-            )
-
         # Generate clips
         for i, seg in enumerate(segments):
             try:
                 clip_name = f"{video_id}_clip_{i+1}_{job_id}"
                 output_path = str(CLIPS_DIR / f"{clip_name}.mp4")
+
+                # Prepare crop filter (per-segment for ai_face)
+                crop_filter = None
+                if crop_mode == "ai_face":
+                    try:
+                        logger.info("Running AI face tracking for segment %d (%.1fs–%.1fs)…", i + 1, seg["start"], seg["end"])
+                        positions = cropper.track_speaker(
+                            video_path,
+                            start_time=seg["start"],
+                            end_time=seg["end"],
+                        )
+                        if positions:
+                            positions = cropper.smooth_crop_trajectory(positions)
+                            crop_filter = cropper.generate_face_crop_filter(
+                                positions, in_w, in_h, out_w, out_h
+                            )
+                            logger.info("AI face tracking succeeded for segment %d (%d positions)", i + 1, len(positions))
+                        else:
+                            logger.warning("No faces detected in segment %d, falling back to center crop", i + 1)
+                    except Exception as e:
+                        logger.warning("Face tracking failed for segment %d, falling back to center crop: %s", i + 1, e)
+
+                if not crop_filter and crop_mode not in ("center", "ai_face"):
+                    crop_filter = cropper.get_crop_filter(
+                        crop_mode, in_w, in_h, out_w, out_h
+                    )
+                elif not crop_filter:
+                    crop_filter = cropper.get_crop_filter(
+                        "center", in_w, in_h, out_w, out_h
+                    )
 
                 # Generate subtitles if enabled
                 sub_path = None
