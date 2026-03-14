@@ -31,3 +31,6 @@ desktop.ini
 # Environment
 .env
 *.env
+
+# YouTube cookies (sensitive)
+cookies.txt

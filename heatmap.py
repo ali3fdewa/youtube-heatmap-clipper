@@ -9,10 +9,23 @@ import re
 import json
 import logging
 import subprocess
+from pathlib import Path
 import requests
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+BASE_DIR = Path(__file__).parent
+COOKIES_FILE = BASE_DIR / "cookies.txt"
+
+
+def _ytdlp_base_cmd() -> list[str]:
+    """Build the base yt-dlp command with cookies and JS runtime flags."""
+    cmd = ["yt-dlp"]
+    if COOKIES_FILE.exists():
+        cmd += ["--cookies", str(COOKIES_FILE)]
+    cmd += ["--js-runtimes", "nodejs"]
+    return cmd
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -91,8 +104,7 @@ def extract_heatmap(video_id: str) -> list[dict] | None:
 def _extract_via_ytdlp(video_id: str) -> list[dict] | None:
     """Extract heatmap data using yt-dlp's JSON dump (most reliable)."""
     try:
-        cmd = [
-            "yt-dlp",
+        cmd = _ytdlp_base_cmd() + [
             "--dump-json",
             "--no-download",
             "--no-playlist",

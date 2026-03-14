@@ -21,9 +21,19 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
 DOWNLOADS_DIR = BASE_DIR / "downloads"
 CLIPS_DIR = BASE_DIR / "clips"
+COOKIES_FILE = BASE_DIR / "cookies.txt"
 
 DOWNLOADS_DIR.mkdir(exist_ok=True)
 CLIPS_DIR.mkdir(exist_ok=True)
+
+
+def _ytdlp_base_cmd() -> list[str]:
+    """Build the base yt-dlp command with cookies and JS runtime flags."""
+    cmd = ["yt-dlp"]
+    if COOKIES_FILE.exists():
+        cmd += ["--cookies", str(COOKIES_FILE)]
+    cmd += ["--js-runtimes", "nodejs"]
+    return cmd
 
 # ---------------------------------------------------------------------------
 # Aspect ratio presets  (width x height)
@@ -59,8 +69,7 @@ def get_video_metadata(url: str) -> dict | None:
     Returns dict with: video_id, title, channel, duration, thumbnail, url
     """
     try:
-        cmd = [
-            "yt-dlp",
+        cmd = _ytdlp_base_cmd() + [
             "--dump-json",
             "--no-download",
             "--no-playlist",
@@ -108,8 +117,7 @@ def download_video(url: str, video_id: str | None = None) -> str | None:
     output_template = str(DOWNLOADS_DIR / f"{video_id}.%(ext)s")
 
     try:
-        cmd = [
-            "yt-dlp",
+        cmd = _ytdlp_base_cmd() + [
             "-f", "bestvideo[height<=1080]+bestaudio/best[height<=1080]",
             "--merge-output-format", "mp4",
             "--no-playlist",
@@ -301,8 +309,7 @@ def list_playlist_videos(playlist_url: str) -> list[dict]:
     Returns list of {\"url\": str, \"title\": str, \"video_id\": str, \"duration\": float}.
     """
     try:
-        cmd = [
-            "yt-dlp",
+        cmd = _ytdlp_base_cmd() + [
             "--flat-playlist",
             "--dump-json",
             "--no-download",

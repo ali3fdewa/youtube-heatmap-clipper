@@ -59,6 +59,40 @@ python app.py
 
 Open **http://localhost:5000** in your browser.
 
+### 🐧 Server Deployment (Ubuntu / Debian)
+
+On modern Debian-based systems (Debian 12+, Ubuntu 23.04+), you **must** use a virtual environment:
+
+```bash
+# Install prerequisites
+sudo apt update
+sudo apt install python3-full python3-venv ffmpeg -y
+
+# Clone the repo
+git clone https://github.com/ali3fdewa/youtube-heatmap-clipper.git
+cd youtube-heatmap-clipper
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Open the firewall port
+sudo ufw allow 5000
+
+# Run the app
+python app.py
+```
+
+> **Note:** Every time you SSH into your server, activate the venv first:
+> ```bash
+> cd youtube-heatmap-clipper
+> source venv/bin/activate
+> python app.py
+> ```
+
 ### Environment Variables
 
 | Variable | Default | Description |
@@ -68,10 +102,32 @@ Open **http://localhost:5000** in your browser.
 
 ```bash
 # Example: run on port 8080 in production
-set PORT=8080
-set FLASK_DEBUG=0
+export PORT=8080
+export FLASK_DEBUG=0
 python app.py
 ```
+
+### 🍪 YouTube Cookies (Bot Detection Fix)
+
+If YouTube blocks your server with *"Sign in to confirm you're not a bot"*, you need to export your browser cookies:
+
+1. Install the [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) browser extension
+2. Go to [youtube.com](https://youtube.com) and make sure you're **logged in**
+3. Click the extension icon → **Export** → save as `cookies.txt`
+4. Upload `cookies.txt` to your project root on the server:
+   ```bash
+   scp cookies.txt user@your-server:~/youtube-heatmap-clipper/
+   ```
+
+The app **automatically detects** `cookies.txt` and passes it to yt-dlp.
+
+### 🔧 Troubleshooting
+
+| Error | Fix |
+|-------|-----|
+| `No supported JavaScript runtime` | `sudo apt install nodejs -y` |
+| `Sign in to confirm you're not a bot` | Add `cookies.txt` (see above) |
+| `externally-managed-environment` | Use a virtual environment (see Server Deployment) |
 
 ---
 
