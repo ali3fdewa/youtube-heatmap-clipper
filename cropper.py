@@ -96,28 +96,47 @@ def _center_crop(in_w: int, in_h: int, out_w: int, out_h: int) -> str:
     return f"crop={crop_w}:{crop_h}:{x}:{y}"
 
 
+def _get_centered_crop(src_w: int, src_h: int, target_ratio: float) -> tuple[int, int, int, int]:
+    """Calculate (crop_w, crop_h, crop_x, crop_y) to center-crop src_w x src_h to target_ratio."""
+    crop_w = int(src_h * target_ratio)
+    crop_h = src_h
+
+    if crop_w > src_w:
+        crop_w = src_w
+        crop_h = int(src_w / target_ratio)
+
+    crop_x = (src_w - crop_w) // 2
+    crop_y = (src_h - crop_h) // 2
+    
+    return crop_w, crop_h, crop_x, crop_y
+
+
 def _split_left(in_w: int, in_h: int, out_w: int, out_h: int) -> str:
     """
     Split layout: top half = main content (center cropped),
     bottom half = bottom-left corner of source (facecam).
     """
     half_h = out_h // 2
+    target_ratio = out_w / half_h
 
     # Top: center crop of full source
-    top_crop_w = int(in_h * (out_w / half_h))
-    if top_crop_w > in_w:
-        top_crop_w = in_w
-    top_x = (in_w - top_crop_w) // 2
+    t_cw, t_ch, t_cx, t_cy = _get_centered_crop(in_w, in_h, target_ratio)
 
     # Bottom: bottom-left quadrant
     cam_w = in_w // 3
     cam_h = in_h // 3
-    cam_x = 0
-    cam_y = in_h - cam_h
+    
+    c_cw, c_ch, c_cx, c_cy = _get_centered_crop(cam_w, cam_h, target_ratio)
+    # Offset to bottom-left corner
+    cam_root_x = 0
+    cam_root_y = in_h - cam_h
+    
+    c_cx += cam_root_x
+    c_cy += cam_root_y
 
     return (
-        f"[0:v]crop={top_crop_w}:{in_h}:{top_x}:0,scale={out_w}:{half_h}[top];"
-        f"[0:v]crop={cam_w}:{cam_h}:{cam_x}:{cam_y},scale={out_w}:{half_h}[bottom];"
+        f"[0:v]crop={t_cw}:{t_ch}:{t_cx}:{t_cy},scale={out_w}:{half_h}[top];"
+        f"[0:v]crop={c_cw}:{c_ch}:{c_cx}:{c_cy},scale={out_w}:{half_h}[bottom];"
         f"[top][bottom]vstack"
     )
 
@@ -128,20 +147,26 @@ def _split_right(in_w: int, in_h: int, out_w: int, out_h: int) -> str:
     bottom half = bottom-right corner (facecam).
     """
     half_h = out_h // 2
+    target_ratio = out_w / half_h
 
-    top_crop_w = int(in_h * (out_w / half_h))
-    if top_crop_w > in_w:
-        top_crop_w = in_w
-    top_x = (in_w - top_crop_w) // 2
+    # Top: center crop of full source
+    t_cw, t_ch, t_cx, t_cy = _get_centered_crop(in_w, in_h, target_ratio)
 
+    # Bottom: bottom-right quadrant
     cam_w = in_w // 3
     cam_h = in_h // 3
-    cam_x = in_w - cam_w
-    cam_y = in_h - cam_h
+    
+    c_cw, c_ch, c_cx, c_cy = _get_centered_crop(cam_w, cam_h, target_ratio)
+    # Offset to bottom-right corner
+    cam_root_x = in_w - cam_w
+    cam_root_y = in_h - cam_h
+    
+    c_cx += cam_root_x
+    c_cy += cam_root_y
 
     return (
-        f"[0:v]crop={top_crop_w}:{in_h}:{top_x}:0,scale={out_w}:{half_h}[top];"
-        f"[0:v]crop={cam_w}:{cam_h}:{cam_x}:{cam_y},scale={out_w}:{half_h}[bottom];"
+        f"[0:v]crop={t_cw}:{t_ch}:{t_cx}:{t_cy},scale={out_w}:{half_h}[top];"
+        f"[0:v]crop={c_cw}:{c_ch}:{c_cx}:{c_cy},scale={out_w}:{half_h}[bottom];"
         f"[top][bottom]vstack"
     )
 
@@ -153,10 +178,18 @@ def _split_up_down(in_w: int, in_h: int, out_w: int, out_h: int) -> str:
     """
     half_h = out_h // 2
     src_half = in_h // 2
+    target_ratio = out_w / half_h
+
+    # Top half
+    t_cw, t_ch, t_cx, t_cy = _get_centered_crop(in_w, src_half, target_ratio)
+    
+    # Bottom half
+    b_cw, b_ch, b_cx, b_cy = _get_centered_crop(in_w, src_half, target_ratio)
+    b_cy += src_half  # offset by top half height
 
     return (
-        f"[0:v]crop={in_w}:{src_half}:0:0,scale={out_w}:{half_h}[top];"
-        f"[0:v]crop={in_w}:{src_half}:0:{src_half},scale={out_w}:{half_h}[bottom];"
+        f"[0:v]crop={t_cw}:{t_ch}:{t_cx}:{t_cy},scale={out_w}:{half_h}[top];"
+        f"[0:v]crop={b_cw}:{b_ch}:{b_cx}:{b_cy},scale={out_w}:{half_h}[bottom];"
         f"[top][bottom]vstack"
     )
 
@@ -169,10 +202,18 @@ def _split_left_right(in_w: int, in_h: int, out_w: int, out_h: int) -> str:
     """
     half_h = out_h // 2
     src_half_w = in_w // 2
+    target_ratio = out_w / half_h
+
+    # Left half
+    l_cw, l_ch, l_cx, l_cy = _get_centered_crop(src_half_w, in_h, target_ratio)
+    
+    # Right half
+    r_cw, r_ch, r_cx, r_cy = _get_centered_crop(src_half_w, in_h, target_ratio)
+    r_cx += src_half_w  # offset by left half width
 
     return (
-        f"[0:v]crop={src_half_w}:{in_h}:0:0,scale={out_w}:{half_h}[left];"
-        f"[0:v]crop={src_half_w}:{in_h}:{src_half_w}:0,scale={out_w}:{half_h}[right];"
+        f"[0:v]crop={l_cw}:{l_ch}:{l_cx}:{l_cy},scale={out_w}:{half_h}[left];"
+        f"[0:v]crop={r_cw}:{r_ch}:{r_cx}:{r_cy},scale={out_w}:{half_h}[right];"
         f"[left][right]vstack"
     )
 
