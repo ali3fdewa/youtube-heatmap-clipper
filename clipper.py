@@ -38,7 +38,7 @@ def _ytdlp_base_cmd() -> list[str]:
     cmd += [
         "--impersonate", "chrome",
         "--remote-components", "ejs:github",
-        "--js-runtimes", "nodejs"
+        "--js-runtimes", "node"
     ]
     return cmd
 
