@@ -34,7 +34,11 @@ def _ytdlp_base_cmd() -> list[str]:
     cmd = ["yt-dlp"]
     if COOKIES_FILE.exists():
         cmd += ["--cookies", str(COOKIES_FILE)]
-    cmd += ["--remote-components", "ejs:github"]
+    # Use built-in impersonation and remote EJS to bypass YouTube JS challenges
+    cmd += [
+        "--impersonate", "chrome",
+        "--remote-components", "ejs:github"
+    ]
     return cmd
 
 # ---------------------------------------------------------------------------
