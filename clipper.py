@@ -37,7 +37,8 @@ def _ytdlp_base_cmd() -> list[str]:
     # Use built-in impersonation and remote EJS to bypass YouTube JS challenges
     cmd += [
         "--impersonate", "chrome",
-        "--js-runtimes", "node"
+        "--js-runtimes", "node",
+        "--extractor-args", "youtube:player_client=default,ios"
     ]
     return cmd
 

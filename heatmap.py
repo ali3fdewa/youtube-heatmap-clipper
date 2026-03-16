@@ -24,7 +24,10 @@ def _ytdlp_base_cmd() -> list[str]:
     cmd = ["yt-dlp"]
     if COOKIES_FILE.exists():
         cmd += ["--cookies", str(COOKIES_FILE)]
-    cmd += ["--js-runtimes", "node"]
+    cmd += [
+        "--js-runtimes", "node",
+        "--extractor-args", "youtube:player_client=default,ios"
+    ]
     return cmd
 
 # ---------------------------------------------------------------------------
