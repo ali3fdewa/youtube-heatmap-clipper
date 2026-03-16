@@ -36,21 +36,51 @@ AVAILABLE_FONTS = [
 DEFAULT_FONT = "Plus Jakarta Sans"
 
 # ---------------------------------------------------------------------------
-# Viral subtitle style defaults
+# Viral subtitle style presets
 # ---------------------------------------------------------------------------
-DEFAULT_STYLE = {
-    "font": DEFAULT_FONT,
-    "font_size": 58,
-    "primary_color": "&H00FFFFFF",     # white
-    "highlight_color": "&H0000FFFF",   # yellow (BGR)
-    "outline_color": "&H00000000",     # black
-    "shadow_color": "&H80000000",      # semi-transparent black
-    "outline_width": 5,
-    "shadow_depth": 3,
-    "bold": True,
-    "position": "bottom",             # "bottom" or "center"
-    "margin_v": 180,
-    "chunk_size": 3,                  # words per subtitle chunk
+PRESETS = {
+    "viral": {
+        "font": "Plus Jakarta Sans",
+        "font_size": 58,
+        "primary_color": "&H00FFFFFF",     # white
+        "highlight_color": "&H0000FFFF",   # yellow (BGR)
+        "outline_color": "&H00000000",     # black
+        "shadow_color": "&H80000000",      # semi-transparent black
+        "outline_width": 5,
+        "shadow_depth": 3,
+        "bold": True,
+        "position": "bottom",
+        "margin_v": 180,
+        "chunk_size": 3,
+    },
+    "gaming": {
+        "font": "Roboto",
+        "font_size": 42,
+        "primary_color": "&H00FFFFFF",
+        "highlight_color": "&H0000FF00",   # green highlight for action
+        "outline_color": "&H00000000",
+        "shadow_color": "&H80000000",
+        "outline_width": 3,
+        "shadow_depth": 2,
+        "bold": True,
+        "position": "top",                 # top placement out of the way
+        "margin_v": 60,
+        "chunk_size": 5,                   # more words per chunk
+    },
+    "minimalist": {
+        "font": "Montserrat",
+        "font_size": 38,
+        "primary_color": "&H00F0F0F0",
+        "highlight_color": "&H00FFFFFF",   # bold white highlight
+        "outline_color": "&H00000000",
+        "shadow_color": "&H00000000",      # no shadow for clean look
+        "outline_width": 1,
+        "shadow_depth": 0,
+        "bold": False,                     # lighter weight font
+        "position": "bottom",
+        "margin_v": 100,
+        "chunk_size": 8,                   # longer phrases
+    }
 }
 
 # Important words to highlight in yellow
@@ -258,10 +288,11 @@ def generate_ass_subtitle(
     Each chunk shows N words at a time (default 3). The currently spoken
     word is rendered in yellow; the rest stay white.
     """
-    cfg = {**DEFAULT_STYLE, **(style_config or {})}
+    preset_name = style_config.get("preset", "viral") if style_config else "viral"
+    cfg = PRESETS.get(preset_name, PRESETS["viral"])
 
-    alignment = "2" if cfg["position"] == "bottom" else "5"
-    bold_flag = "-1" if cfg["bold"] else "0"
+    alignment = "5" if cfg["position"] == "center" else "8" if cfg["position"] == "top" else "2"
+    bold_flag = "-1" if cfg.get("bold", True) else "0"
     chunk_size = int(cfg.get("chunk_size", 3))
 
     ass_content = f"""[Script Info]

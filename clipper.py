@@ -13,6 +13,8 @@ import subprocess
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import tts
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -178,6 +180,10 @@ def generate_clip(
     aspect_ratio: str = "9:16",
     crop_filter: str | None = None,
     subtitle_path: str | None = None,
+    tts_config: dict | None = None,
+    is_fast_mode: bool = False,
+    transcript: list | None = None,
+    clip_name: str | None = None
 ) -> dict:
     """
     Generate a single clip using FFmpeg.
@@ -186,6 +192,17 @@ def generate_clip(
     """
     duration = end - start
     out_dims = ASPECT_RATIOS.get(aspect_ratio)
+
+    # Check TTS config
+    tts_audio_path = None
+    if tts_config and tts_config.get("enabled") and tts_config.get("voice") and transcript and clip_name:
+        # Extract the full text representing the segment
+        full_text = " ".join([seg.get("text", "") for seg in transcript]).strip()
+        if full_text:
+            tts_audio_path = str(CLIPS_DIR / f"{clip_name}_tts.wav")
+            tts_success = tts.generate_tts_for_segment(full_text, tts_config["voice"], tts_audio_path)
+            if not tts_success:
+                tts_audio_path = None
 
     # Build filter chain
     filters = []
@@ -205,25 +222,37 @@ def generate_clip(
 
     filter_str = ",".join(filters) if filters else None
 
+    # Determine fast mode preset
+    preset = "ultrafast" if is_fast_mode else "fast"
+
     cmd = [
         "ffmpeg", "-y",
         "-ss", str(start),
-        "-i", input_path,
-        "-t", str(duration),
+        "-i", input_path
     ]
+    
+    # If TTS audio generated, swap audio input
+    if tts_audio_path and os.path.exists(tts_audio_path):
+        cmd += ["-i", tts_audio_path]
+        
+    cmd += ["-t", str(duration)]
 
     if filter_str:
         cmd += ["-vf", filter_str]
 
     cmd += [
         "-c:v", "libx264",
-        "-preset", "fast",
-        "-crf", "23",
-        "-c:a", "aac",
-        "-b:a", "128k",
-        "-movflags", "+faststart",
-        output_path,
+        "-preset", preset,
+        "-crf", "23"
     ]
+    
+    if tts_audio_path and os.path.exists(tts_audio_path):
+        # Map video from input 1, audio from input 2
+        cmd += ["-c:a", "aac", "-b:a", "128k", "-map", "0:v:0", "-map", "1:a:0", "-shortest"]
+    else:
+        cmd += ["-c:a", "aac", "-b:a", "128k"]
+        
+    cmd += ["-movflags", "+faststart", output_path]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)

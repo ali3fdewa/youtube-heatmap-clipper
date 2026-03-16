@@ -67,21 +67,20 @@
     <!-- ============ Section 1: URL Input ============ -->
     <section class="glass p-6 anim-fade-up">
       <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">📡 YouTube Scanner</h2>
-      <div class="flex gap-3">
+      <div class="flex flex-col sm:flex-row gap-3">
         <div class="flex-1 relative">
           <input id="youtube-url" type="text"
                  placeholder="Paste YouTube URL (video, short, or playlist)…"
-                 class="w-full px-5 py-3.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                 class="w-full px-5 py-4 sm:py-3.5 rounded-xl bg-slate-800/60 border border-slate-700/40
                         placeholder-slate-500 text-slate-200 focus:outline-none focus:border-indigo-500/60
-                        focus:ring-2 focus:ring-indigo-500/20 transition-all text-sm">
-          <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs">↵ Enter</span>
+                        focus:ring-2 focus:ring-indigo-500/20 transition-all text-sm sm:text-base shadow-inner">
+          <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs hidden sm:block">↵ Enter</span>
         </div>
         <button id="btn-scan" onclick="scanVideo()"
-                class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600
-                       hover:from-indigo-500 hover:to-purple-500 text-white font-semibold
-                       transition-all duration-200 shadow-lg shadow-indigo-500/20
-                       hover:shadow-xl hover:shadow-indigo-500/30 active:scale-95 text-sm">
-          🔍 Scan Video
+                class="w-full sm:w-auto px-8 py-4 sm:py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600
+                       hover:from-indigo-500 hover:to-purple-500 text-white font-bold
+                       transition-all shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/40 active:scale-[0.98] text-sm sm:text-base">
+          ✨ Scan Video
         </button>
       </div>
       <!-- Detection Threshold Slider -->
@@ -166,17 +165,17 @@
       </div>
 
       <!-- Create Clips Button -->
-      <div class="mt-6 flex flex-col md:flex-row gap-4 items-start">
+      <div class="mt-8 flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-800/30 p-4 rounded-2xl border border-slate-700/30">
         <button id="btn-create-clips" onclick="createClips()"
-                class="px-8 py-3 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600
-                       hover:from-fuchsia-500 hover:to-pink-500 text-white font-bold
-                       transition-all shadow-lg shadow-fuchsia-500/20 hover:shadow-xl
-                       hover:shadow-fuchsia-500/30 active:scale-95 pulse-glow">
-          🎬 Create Selected Clips
+                class="w-full md:w-auto px-10 py-4 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600
+                       hover:from-fuchsia-500 hover:to-pink-500 text-white font-bold text-lg
+                       transition-all shadow-lg shadow-fuchsia-500/25 hover:shadow-xl
+                       hover:shadow-fuchsia-500/40 active:scale-[0.98] pulse-glow">
+          🎬 Auto-Generate Selected Clips
         </button>
 
         <!-- Manual Clip Tool -->
-        <div class="flex items-center gap-2 glass-light p-3 rounded-xl">
+        <div class="flex items-center gap-2 glass-light p-3 rounded-xl w-full md:w-auto justify-center">
           <span class="text-xs text-slate-400">Manual:</span>
           <input id="manual-start" type="text" placeholder="0:30"
                  class="w-20 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40
@@ -210,7 +209,7 @@
       </div>
 
       <!-- Clips Grid -->
-      <div id="clips-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div id="clips-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </section>
 
     <!-- ============ Section 6: Batch Mode ============ -->
@@ -235,7 +234,7 @@
     <section id="settings-panel" class="glass p-6 hidden anim-fade-up">
       <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-6">⚙️ Settings</h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
         <!-- Aspect Ratio -->
         <div class="space-y-2">
@@ -243,10 +242,10 @@
           <select onchange="updateSetting('aspectRatio', this.value)"
                   class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
                          text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
-            <option value="9:16" selected>9:16 — Shorts / TikTok / Reels</option>
-            <option value="1:1">1:1 — Square</option>
-            <option value="16:9">16:9 — Landscape</option>
-            <option value="original">Original</option>
+            <option value="9:16" selected>📱 9:16 — Shorts / TikTok / Reels</option>
+            <option value="1:1">⬜ 1:1 — Square</option>
+            <option value="16:9">💻 16:9 — Landscape</option>
+            <option value="original">🎥 Original</option>
           </select>
         </div>
 
@@ -256,12 +255,12 @@
           <select onchange="updateSetting('cropMode', this.value)"
                   class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
                          text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
-            <option value="center" selected>Center Crop</option>
-            <option value="split_left">Split Left (facecam bottom-left)</option>
-            <option value="split_right">Split Right (facecam bottom-right)</option>
-            <option value="split_up_down">Split Up/Down (speaker + gameplay)</option>
-            <option value="split_left_right">Split Left/Right</option>
-            <option value="ai_face">🤖 AI Face Tracking</option>
+            <option value="center" selected>🎯 Center Crop</option>
+            <option value="split_left">✂️ Split Left (facecam bottom-left)</option>
+            <option value="split_right">✂️ Split Right (facecam bottom-right)</option>
+            <option value="split_up_down">↕️ Split Up/Down (speaker + gameplay)</option>
+            <option value="split_left_right">↔️ Split Left/Right</option>
+            <option value="ai_face">🤖 AI Face Tracking (Active Speaker)</option>
           </select>
         </div>
 
@@ -285,10 +284,10 @@
           <select onchange="updateSetting('subtitles.font', this.value)"
                   class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
                          text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
-            <option value="Plus Jakarta Sans" selected>Plus Jakarta Sans</option>
-            <option value="Roboto">Roboto</option>
-            <option value="Montserrat">Montserrat</option>
-            <option value="Arial">Arial</option>
+            <option value="Plus Jakarta Sans" selected>Plus Jakarta Sans (Modern)</option>
+            <option value="Roboto">Roboto (Clean)</option>
+            <option value="Montserrat">Montserrat (Geometric)</option>
+            <option value="Arial">Arial (Fallback)</option>
           </select>
         </div>
 
@@ -324,6 +323,43 @@
                    onchange="updateSetting('subtitles.enabled', this.checked)"
                    class="custom-checkbox">
             <span class="text-sm text-slate-300">Enable AI Subtitles</span>
+          </label>
+        </div>
+
+        <!-- Subtitle Preset -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Subtitle Preset</label>
+          <select onchange="updateSetting('subtitles.preset', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50">
+            <option value="viral" selected>Viral Mobile (Large, Yellow)</option>
+            <option value="gaming">Gaming (Smaller, Top placement)</option>
+            <option value="minimalist">Minimalist (Clean White)</option>
+          </select>
+        </div>
+
+        <!-- TTS Voices -->
+        <div class="space-y-2">
+          <label class="text-xs text-slate-400 uppercase tracking-wider font-semibold">AI Voiceover (TTS)</label>
+          <div class="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="tts-toggle" onchange="updateSetting('tts.enabled', this.checked)" class="custom-checkbox">
+              <span class="text-sm text-slate-300">Replace audio with AI voice</span>
+          </div>
+          <select id="tts-voice-select" onchange="updateSetting('tts.voice', this.value)"
+                  class="w-full px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40
+                         text-sm text-slate-300 focus:outline-none focus:border-indigo-500/50" disabled>
+            <option value="">Loading voices...</option>
+          </select>
+        </div>
+
+        <!-- Fast Process / Turbo -->
+        <div class="space-y-2 p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+          <label class="text-xs text-indigo-400 uppercase tracking-wider font-bold">⚡ Processing Speed</label>
+          <label class="flex items-center gap-3 cursor-pointer py-1 mt-1">
+            <input type="checkbox"
+                   onchange="updateSetting('speed', this.checked)"
+                   class="custom-checkbox">
+            <span class="text-sm text-slate-200 font-medium">Turbo Mode <span class="text-indigo-400 text-xs font-normal ml-1">(Ultrafast encoding)</span></span>
           </label>
         </div>
 

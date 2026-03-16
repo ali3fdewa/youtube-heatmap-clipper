@@ -27,6 +27,7 @@ import subtitle
 import cropper
 import viral_detector
 import telegram_bot
+import tts
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -247,6 +248,8 @@ def api_create_clips():
         _generate_clips_job,
         job_id, url, video_id, segments,
         aspect_ratio, crop_mode, sub_config,
+        data.get("tts", {}),
+        data.get("speed", False),
     )
 
     return jsonify({"job_id": job_id, "status": "started"})
@@ -255,6 +258,7 @@ def api_create_clips():
 def _generate_clips_job(
     job_id, url, video_id, segments,
     aspect_ratio, crop_mode, sub_config,
+    tts_config, is_fast_mode
 ):
     """Background job: download video + generate all clips."""
     try:
@@ -323,9 +327,7 @@ def _generate_clips_job(
                             model_size=sub_config.get("model", "base"),
                             language=sub_lang,
                             style_config={
-                                "font": sub_config.get("font", "Plus Jakarta Sans"),
-                                "font_size": int(sub_config.get("font_size", 58)),
-                                "position": sub_config.get("position", "bottom"),
+                                "preset": sub_config.get("preset", "viral"),
                             },
                         )
                         if sub_result["success"]:
@@ -347,6 +349,10 @@ def _generate_clips_job(
                         aspect_ratio=aspect_ratio,
                         crop_filter=crop_filter,
                         subtitle_path=sub_path,
+                        tts_config=tts_config,
+                        is_fast_mode=is_fast_mode,
+                        transcript=sub_result.get("transcript", []) if sub_path else [],
+                        clip_name=clip_name
                     )
 
                 if result["success"]:
@@ -431,6 +437,8 @@ def api_manual_clip():
     # Reuse /api/clips with a single segment
     data["segments"] = [{"start": start, "end": end}]
     data["video_id"] = clipper.extract_video_id(url) or "manual"
+    data["tts"] = data.get("tts", {})
+    data["speed"] = data.get("speed", False)
 
     # Forward to clips endpoint logic
     return api_create_clips()
@@ -506,6 +514,11 @@ def api_fonts():
 def api_models():
     """List available whisper models."""
     return jsonify({"models": subtitle.AVAILABLE_MODELS})
+
+@app.route("/api/tts/voices", methods=["GET"])
+def api_tts_voices():
+    """List available TTS voice models."""
+    return jsonify({"voices": tts.AVAILABLE_VOICES})
 
 
 # ---------------------------------------------------------------------------

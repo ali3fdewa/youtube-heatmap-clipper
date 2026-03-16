@@ -19,13 +19,16 @@ const state = {
     aspectRatio: '9:16',
     cropMode: 'center',
     threshold: 0.40,
+    speed: false, // Fast processing turbo mode
+    tts: {
+        enabled: false,
+        voice: ''
+    },
     subtitles: {
       enabled: true,
       model: 'base',
       language: '',
-      font: 'Plus Jakarta Sans',
-      font_size: 58,
-      position: 'bottom',
+      preset: 'viral',
     },
     telegram: { botToken: '', chatId: '' },
   },
@@ -313,6 +316,8 @@ async function createClips() {
       aspect_ratio: state.settings.aspectRatio,
       crop_mode: state.settings.cropMode,
       subtitles: state.settings.subtitles,
+      tts: state.settings.tts,
+      speed: state.settings.speed,
     });
 
     state.currentJobId = data.job_id;
@@ -348,6 +353,8 @@ async function createManualClip() {
       aspect_ratio: state.settings.aspectRatio,
       crop_mode: state.settings.cropMode,
       subtitles: state.settings.subtitles,
+      tts: state.settings.tts,
+      speed: state.settings.speed,
     });
 
     state.currentJobId = data.job_id;
@@ -476,23 +483,38 @@ function renderClips(clips) {
   if (!grid) return;
 
   grid.innerHTML = clips.map(clip => `
-    <div class="glass-light p-4 anim-pop-in">
-      <video controls preload="metadata" class="w-full rounded-lg mb-3 max-h-64 bg-black">
-        <source src="${clip.url}" type="video/mp4">
-      </video>
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs text-slate-400 font-mono">${formatTime(clip.start)} → ${formatTime(clip.end)}</span>
+    <div class="glass-light rounded-2xl p-4 anim-pop-in hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300">
+      <div class="relative group rounded-xl overflow-hidden mb-4 bg-slate-900 border border-slate-700/50">
+        <video controls playsinline preload="metadata" class="w-full aspect-[9/16] object-contain">
+          <source src="${clip.url}" type="video/mp4">
+        </video>
+        <!-- Overlay Badges -->
+        <div class="absolute top-3 left-3 flex gap-2">
+            <span class="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-bold text-white uppercase tracking-wider border border-white/10">
+                ⭐ Viral
+            </span>
+        </div>
       </div>
-      <div class="flex gap-2">
+      
+      <div class="flex items-center gap-2 mb-4 px-1">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-xs text-slate-300 font-mono">${formatTime(clip.start)} → ${formatTime(clip.end)} (${clip.filename.split('_')[1] || 'clip'})</span>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-2">
         <a href="${clip.url}" download
-           class="flex-1 text-center py-2 px-3 rounded-lg bg-indigo-500/20 text-indigo-400
-                  hover:bg-indigo-500/40 transition-all text-sm font-medium">
-          💾 Download
+           class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 
+                  border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/30 hover:text-white hover:border-indigo-400 
+                  transition-all text-sm font-semibold shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          Download
         </a>
         <button onclick="sendToTelegram('${clip.filename}')"
-                class="flex-1 py-2 px-3 rounded-lg bg-sky-500/20 text-sky-400
-                       hover:bg-sky-500/40 transition-all text-sm font-medium">
-          📲 Telegram
+                class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-500/20 
+                       border border-sky-500/30 text-sky-300 hover:bg-sky-500/30 hover:text-white hover:border-sky-400 
+                       transition-all text-sm font-semibold shadow-lg shadow-sky-500/10 hover:shadow-sky-500/20">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+          Telegram
         </button>
       </div>
     </div>
@@ -584,11 +606,33 @@ async function checkSystem() {
   }
 }
 
+async function fetchVoices() {
+  try {
+    const data = await apiCall('/api/tts/voices');
+    const select = document.getElementById('tts-voice-select');
+    if (!select) return;
+    
+    select.innerHTML = data.voices.map(v => 
+      `<option value="${v.id}">${v.name}</option>`
+    ).join('');
+    
+    select.disabled = false;
+    
+    // Set default in state
+    if (data.voices.length) {
+       state.settings.tts.voice = data.voices[0].id;
+    }
+  } catch(e) {
+    console.warn("Failed to load TTS voices", e);
+  }
+}
+
 // ==========================================================================
 // Init
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
   checkSystem();
+  fetchVoices();
 
   // URL paste handling
   const urlInput = document.getElementById('youtube-url');
